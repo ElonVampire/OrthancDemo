@@ -49,14 +49,14 @@ elseif (MSVC)
     CMAKE_CXX_FLAGS_MINSIZEREL 
     CMAKE_C_FLAGS_RELWITHDEBINFO 
     CMAKE_CXX_FLAGS_RELWITHDEBINFO) 
-    message("CMAKE_SYSTEM_VERSION: ${CMAKE_SYSTEM_VERSION}")
+    # message("CMAKE_SYSTEM_VERSION: ${CMAKE_SYSTEM_VERSION}")
     message("CMAKE_SYSTEM_VERSION: ${${flag_var}}")
-    message("CMAKE_SYSTEM_VERSION: ${flag_var}")
+    # message("CMAKE_SYSTEM_VERSION: ${flag_var}")
     string(REGEX REPLACE "/MD" "/MT" ${flag_var} "${${flag_var}}")
     string(REGEX REPLACE "/MDd" "/MTd" ${flag_var} "${${flag_var}}")
     message("CMAKE_SYSTEM_VERSION: ${${flag_var}}")
-    message("CMAKE_SYSTEM_VERSION: ${flag_var}")
-    message("CMAKE_SYSTEM_VERSION: ${CMAKE_SYSTEM_VERSION}")
+    # message("CMAKE_SYSTEM_VERSION: ${flag_var}")
+    # message("CMAKE_SYSTEM_VERSION: ${CMAKE_SYSTEM_VERSION}")
   endforeach(flag_var)
 
   # Add /Zm256 compiler option to Visual Studio to fix PCH errors

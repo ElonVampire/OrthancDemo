@@ -205,7 +205,6 @@ message(${CMAKE_CURRENT_LIST_DIR})
 ##
 ## Embedded database: SQLite
 ##
-
 if (ENABLE_SQLITE)
   include(${CMAKE_CURRENT_LIST_DIR}/SQLiteConfiguration.cmake)
   add_definitions(-DORTHANC_ENABLE_SQLITE=1)
@@ -219,3 +218,246 @@ if (ENABLE_SQLITE)
 #     ${CMAKE_CURRENT_LIST_DIR}/../../Sources/SQLite/Transaction.cpp
 #     )
 endif()
+
+
+##
+## Cryptography: OpenSSL and libp11
+## Must be above "ENABLE_WEB_CLIENT" and "ENABLE_WEB_SERVER"
+##
+if (ENABLE_CRYPTO_OPTIONS)
+#todo
+
+endif()
+
+##
+## HTTP client: libcurl
+##
+if (ENABLE_WEB_CLIENT)
+#todo
+
+endif()
+
+##
+## HTTP server: Mongoose 3.8 or Civetweb
+##
+if (ENABLE_WEB_SERVER)
+  if (ENABLE_CIVETWEB)
+#todo
+  endif()
+
+  if (ENABLE_PUGIXML)
+  endif()
+endif()
+
+
+if (ORTHANC_ENABLE_CIVETWEB)
+  add_definitions(-DORTHANC_ENABLE_CIVETWEB=1)
+else()
+  add_definitions(-DORTHANC_ENABLE_CIVETWEB=0)
+endif()
+
+if (ORTHANC_ENABLE_MONGOOSE)
+  add_definitions(-DORTHANC_ENABLE_MONGOOSE=1)
+else()
+  add_definitions(-DORTHANC_ENABLE_MONGOOSE=0)
+endif()
+
+
+##
+## JPEG support: libjpeg
+##
+if (ENABLE_JPEG)
+  if (NOT ENABLE_MODULE_IMAGES)
+    message(FATAL_ERROR "Image processing primitives must be enabled if enabling libjpeg support")
+  endif()
+#todo
+
+endif()
+
+
+##
+## zlib support
+##
+if (ENABLE_ZLIB)
+#todo
+
+endif()
+
+##
+## PNG support: libpng (in conjunction with zlib)
+##
+if (ENABLE_PNG)
+  if (NOT ENABLE_ZLIB)
+    message(FATAL_ERROR "Support for zlib must be enabled if enabling libpng support")
+  endif()
+
+  if (NOT ENABLE_MODULE_IMAGES)
+    message(FATAL_ERROR "Image processing primitives must be enabled if enabling libpng support")
+  endif()
+#todo
+
+endif()
+
+
+##
+## Lua support
+##
+if (ENABLE_LUA)
+#todo
+
+endif()
+
+
+##
+## XML support: pugixml
+##
+if (ENABLE_PUGIXML)
+#todo
+
+endif()
+
+
+##
+## Locale support
+##
+if (ENABLE_LOCALE)
+#todo
+
+endif()
+
+##
+## Google Test for unit testing
+##
+if (ENABLE_GOOGLE_TEST)
+#todo
+
+endif()
+
+
+#####################################################################
+## Inclusion of mandatory third-party dependencies
+#####################################################################
+
+include(${CMAKE_CURRENT_LIST_DIR}/JsonCppConfiguration.cmake)
+include(${CMAKE_CURRENT_LIST_DIR}/UuidConfiguration.cmake)
+
+# We put Boost as the last dependency, as it is the heaviest to
+# configure, which allows one to quickly spot problems when configuring
+# static builds in other dependencies
+include(${CMAKE_CURRENT_LIST_DIR}/BoostConfiguration.cmake)
+
+
+#####################################################################
+## Optional configuration of DCMTK
+#####################################################################
+
+if (ENABLE_DCMTK)
+#todo
+
+endif()
+
+#####################################################################
+## Configuration of the C/C++ macros
+#####################################################################
+
+add_definitions(
+  -DORTHANC_API_VERSION=${ORTHANC_API_VERSION}
+  -DORTHANC_DATABASE_VERSION=${ORTHANC_DATABASE_VERSION}
+  -DORTHANC_DEFAULT_DICOM_ENCODING=Encoding_Latin1
+  -DORTHANC_ENABLE_BASE64=1
+  -DORTHANC_ENABLE_MD5=1
+  -DORTHANC_MAXIMUM_TAG_LENGTH=256
+  -DORTHANC_VERSION="${ORTHANC_VERSION}"
+  )
+
+
+if (ORTHANC_BUILDING_FRAMEWORK_LIBRARY)
+  add_definitions(-DORTHANC_BUILDING_FRAMEWORK_LIBRARY=1)
+else()
+  add_definitions(-DORTHANC_BUILDING_FRAMEWORK_LIBRARY=0)
+endif()
+
+
+if (ORTHANC_SANDBOXED)
+  add_definitions(
+    -DORTHANC_SANDBOXED=1
+    )
+#todo
+
+endif()
+
+
+if (ORTHANC_ENABLE_LOGGING)
+  add_definitions(-DORTHANC_ENABLE_LOGGING=1)
+else()
+  add_definitions(-DORTHANC_ENABLE_LOGGING=0)
+endif()
+
+if (ORTHANC_ENABLE_LOGGING_STDIO)
+  add_definitions(-DORTHANC_ENABLE_LOGGING_STDIO=1)
+else()
+  add_definitions(-DORTHANC_ENABLE_LOGGING_STDIO=0)
+endif()
+
+
+
+#####################################################################
+## Configuration of Orthanc versioning macros (new in Orthanc 1.5.0)
+#####################################################################
+
+if (ORTHANC_VERSION STREQUAL "mainline")
+  set(ORTHANC_VERSION_MAJOR "999")
+  set(ORTHANC_VERSION_MINOR "999")
+  set(ORTHANC_VERSION_REVISION "999")
+else()
+  string(REGEX REPLACE "^([0-9]*)\\.([0-9]*)\\.([0-9]*)$" "\\1" ORTHANC_VERSION_MAJOR    ${ORTHANC_VERSION})
+  string(REGEX REPLACE "^([0-9]*)\\.([0-9]*)\\.([0-9]*)$" "\\2" ORTHANC_VERSION_MINOR    ${ORTHANC_VERSION})
+  string(REGEX REPLACE "^([0-9]*)\\.([0-9]*)\\.([0-9]*)$" "\\3" ORTHANC_VERSION_REVISION ${ORTHANC_VERSION})
+
+  if (NOT ORTHANC_VERSION STREQUAL
+      "${ORTHANC_VERSION_MAJOR}.${ORTHANC_VERSION_MINOR}.${ORTHANC_VERSION_REVISION}")
+    message(FATAL_ERROR "Error in the (x.y.z) format of the Orthanc version: ${ORTHANC_VERSION}")
+  endif()
+endif()
+
+add_definitions(
+  -DORTHANC_VERSION_MAJOR=${ORTHANC_VERSION_MAJOR}
+  -DORTHANC_VERSION_MINOR=${ORTHANC_VERSION_MINOR}
+  -DORTHANC_VERSION_REVISION=${ORTHANC_VERSION_REVISION}
+  )
+
+
+
+
+#####################################################################
+## Gathering of all the source code
+#####################################################################
+
+# The "xxx_INTERNAL" variables list the source code that belongs to
+# the Orthanc project. It can be used to configure precompiled headers
+# if using Microsoft Visual Studio.
+
+# The "xxx_DEPENDENCIES" variables list the source code coming from
+# third-party dependencies.
+
+set(ORTHANC_CORE_SOURCES_DEPENDENCIES
+  # ${BOOST_SOURCES}
+  # ${CIVETWEB_SOURCES}
+  # ${CURL_SOURCES}
+  # ${JSONCPP_SOURCES}
+  # ${LIBICONV_SOURCES}
+  # ${LIBICU_SOURCES}
+  # ${LIBJPEG_SOURCES}
+  # ${LIBP11_SOURCES}
+  # ${LIBPNG_SOURCES}
+  # ${LUA_SOURCES}
+  # ${MONGOOSE_SOURCES}
+  # ${OPENSSL_SOURCES}
+  # ${PUGIXML_SOURCES}
+  # ${SQLITE_SOURCES}
+  # ${UUID_SOURCES}
+  # ${ZLIB_SOURCES}
+
+  # ${CMAKE_CURRENT_LIST_DIR}/../../Resources/ThirdParty/md5/md5.c
+  # ${CMAKE_CURRENT_LIST_DIR}/../../Resources/ThirdParty/base64/base64.cpp
+  )
