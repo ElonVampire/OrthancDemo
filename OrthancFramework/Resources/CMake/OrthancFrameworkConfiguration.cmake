@@ -312,8 +312,8 @@ endif()
 ## XML support: pugixml
 ##
 if (ENABLE_PUGIXML)
-#todo
-
+  include(${CMAKE_CURRENT_LIST_DIR}/PugixmlConfiguration.cmake)
+  add_definitions(-DORTHANC_ENABLE_PUGIXML=1)
 endif()
 
 
@@ -321,8 +321,24 @@ endif()
 ## Locale support
 ##
 if (ENABLE_LOCALE)
-#todo
+  if (CMAKE_SYSTEM_NAME STREQUAL "Emscripten")
+    # In WebAssembly or asm.js, we rely on the version of iconv that
+    # is shipped with the stdlib
+    unset(BOOST_LOCALE_BACKEND CACHE)
+  else()
+    if (BOOST_LOCALE_BACKEND STREQUAL "gcc")
+    elseif (BOOST_LOCALE_BACKEND STREQUAL "libiconv")
+      include(${CMAKE_CURRENT_LIST_DIR}/LibIconvConfiguration.cmake)
+    elseif (BOOST_LOCALE_BACKEND STREQUAL "icu")
+      include(${CMAKE_CURRENT_LIST_DIR}/LibIcuConfiguration.cmake)
+    elseif (BOOST_LOCALE_BACKEND STREQUAL "wconv")
+      message("Using Microsoft Window's wconv")
+    else()
+      message(FATAL_ERROR "Invalid value for BOOST_LOCALE_BACKEND: ${BOOST_LOCALE_BACKEND}")
+    endif()
+  endif()
 
+  add_definitions(-DORTHANC_ENABLE_LOCALE=1)
 endif()
 
 ##
@@ -352,6 +368,17 @@ include(${CMAKE_CURRENT_LIST_DIR}/BoostConfiguration.cmake)
 #####################################################################
 
 if (ENABLE_DCMTK)
+  if (NOT ENABLE_LOCALE)
+    message(FATAL_ERROR "Support for locales must be enabled if enabling DCMTK support")
+  endif()
+
+  if (NOT ENABLE_MODULE_DICOM)
+    message(FATAL_ERROR "DICOM module must be enabled if enabling DCMTK support")
+  endif()
+
+  # WARNING - MUST be after "OpenSslConfiguration.cmake", otherwise
+  # DICOM TLS will not be corrected detected
+  
 #todo
 
 endif()
@@ -441,10 +468,10 @@ add_definitions(
 # third-party dependencies.
 
 set(ORTHANC_CORE_SOURCES_DEPENDENCIES
-  # ${BOOST_SOURCES}
+  ${BOOST_SOURCES}
   # ${CIVETWEB_SOURCES}
   # ${CURL_SOURCES}
-  # ${JSONCPP_SOURCES}
+  ${JSONCPP_SOURCES}
   # ${LIBICONV_SOURCES}
   # ${LIBICU_SOURCES}
   # ${LIBJPEG_SOURCES}
@@ -453,9 +480,9 @@ set(ORTHANC_CORE_SOURCES_DEPENDENCIES
   # ${LUA_SOURCES}
   # ${MONGOOSE_SOURCES}
   # ${OPENSSL_SOURCES}
-  # ${PUGIXML_SOURCES}
-  # ${SQLITE_SOURCES}
-  # ${UUID_SOURCES}
+  ${PUGIXML_SOURCES}
+  ${SQLITE_SOURCES}
+  ${UUID_SOURCES}
   # ${ZLIB_SOURCES}
 
   # ${CMAKE_CURRENT_LIST_DIR}/../../Resources/ThirdParty/md5/md5.c
