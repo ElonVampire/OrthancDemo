@@ -30,6 +30,15 @@ namespace Orthanc
         }
     }
 
+    void ChunkedBuffer::FlushPendingBuffer()
+    {
 
-    
+    }
+
+    ChunkedBuffer::ChunkedBuffer():
+        numBytes_(0),
+        pendingPos_(0)
+    {
+        pendingBuffer_.resize(16 * 1024);  // Default size of the pending buffer: 16KB
+    }
 }

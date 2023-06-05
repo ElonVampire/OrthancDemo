@@ -34,6 +34,7 @@
 *.sln
 *.vcxproj
 *.vcxproj.*
+Build/*
 Build/.cmake/*
 Build/CMakeFiles/*
 *Cache.txt
