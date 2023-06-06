@@ -7,7 +7,16 @@
 	"settings": {
 		"files.associations": {
 			"random": "cpp",
-			"list": "cpp"
+			"list": "cpp",
+			"memory": "cpp",
+			"set": "cpp",
+			"xtree": "cpp",
+			"deque": "cpp",
+			"map": "cpp",
+			"unordered_map": "cpp",
+			"vector": "cpp",
+			"xhash": "cpp",
+			"xstring": "cpp"
 		}
 	}
 }
