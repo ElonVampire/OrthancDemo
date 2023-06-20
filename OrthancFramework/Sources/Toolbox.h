@@ -61,7 +61,7 @@ namespace Orthanc
             size_t              lineStart_;
             size_t              lineEnd_;
 
-            void FindEndOfLIne();
+            void FindEndOfLine();
 
         public:
             explicit LinesIterator(const std::string& content);
@@ -175,6 +175,120 @@ namespace Orthanc
                 target.insert(*it);
             }
         }
-    }
 
+        template <typename T> static void RemoveSets(std::set<T>& target, const std::set<T>& toRemove)
+        {
+            for(typename std::set<T>::const_iterator it = toRemove.begin();
+                it != toRemove.end(); ++it)
+            {
+                target.erase(*it);
+            }
+        }
+
+#if ORTHANC_ENABLE_PUGIXML == 1
+        static void JsonToXml(std::string& target, 
+                              const Json::Value& source,
+                              const std::string& rootElement = "root",
+                              const std::string& arrayElement = "item");
+#endif            
+
+#if ORTHANC_ENABLE_PUGIXML == 1
+        static void XmlToString(std::string& target,
+                                const pugi::xml_document& source);
+#endif 
+        static bool IsInteger(const std::string& str);
+
+        static void CopyJsonWithoutComments(Json::Value& target, 
+                                            const Json::Value& source);
+
+        static bool StartsWith(const std::string& str,
+                               const std::string& prefix);
+
+        static void UriEncode(std::string& target,
+                            const std::string& source);
+
+        static std::string GetJsonStringField(const ::Json::Value& json,
+                                            const std::string& key,
+                                            const std::string& defaultValue);
+
+        static bool GetJsonBooleanField(const ::Json::Value& json,
+                                        const std::string& key,
+                                        bool defaultValue);
+
+        static int GetJsonIntegerField(const ::Json::Value& json,
+                                    const std::string& key,
+                                    int defaultValue);
+
+        static unsigned int GetJsonUnsignedIntegerField(const ::Json::Value& json,
+                                                        const std::string& key,
+                                                        unsigned int defaultValue);
+
+        static bool IsUuid(const std::string& str);
+
+        static bool StartsWithUuid(const std::string& str);
+
+#if ORTHANC_ENABLE_LOCALE == 1
+        static void InitializeGlobalLocale(const char* locale);
+
+        static void FinalizeGlobalLocale();
+
+        static std::string ToUpperCaseWithAccents(const std::string& source);
+#endif        
+
+        static void InitializeOpenSsl();
+
+        static void FinalizeOpenSsl();
+
+        static std::string GenerateUuid();
+
+        static std::string SubstitueVariables(const std::string& source, 
+                                              const std::map<std::string, std::string>& dictionary);
+
+        static void RemoveIso2022EscapeSequences(std::string& dest,     
+                                                const std::string& src);
+        
+        static void Utf8ToUnicodeCharacter(uint32_t& unicode,
+                                            size_t& utf8length,
+                                            const std::string& utf8,
+                                            size_t position);
+
+        static std::string LargeHexadecimalToDecimal(const std::string& hex);
+
+        // http://dicom.nema.org/medical/dicom/2019a/output/chtml/part05/sect_B.2.html
+        static void GenerateDicomPrivateUniqueIdentifier();
+
+        static void SimplifyDicomAsJson(Json::Value& target,
+                                    const Json::Value& source,
+                                    DicomToJsonFormat format);
+
+        static bool ReadJson(Json::Value& target, const std::string& source);
+
+        static bool ReadJson(Json::Value& target, const void* buffer, size_t size);
+
+        static bool ReadJsonWithoutComments(Json::Value& target,
+                                            const std::string& source);
+
+        static bool ReadJsonWithoutComments(Json::Value& target,
+                                            const void* buffer,
+                                            size_t size);
+
+        static void WriteFastJson(std::string& target,
+                                const Json::Value& source);
+
+        static void WriteStyledJson(std::string& target,
+                                    const Json::Value& source);
+
+        static void RemoveSurroundingQuotes(std::string& value);
+    
+    };
 }
+
+struct OrthancLinesIterator;
+
+OrthancLinesIterator* OrthancLinesIterator_Create(const std::string& content);
+
+bool OrthancLinesIterator_GetLine(std::string& target, const OrthancLinesIterator* iterator);
+
+void OrthancLinesIterator_Next(OrthancLinesIterator* iterator);
+
+void OrthancLinesIterator_Free(OrthancLinesIterator* iterator);
