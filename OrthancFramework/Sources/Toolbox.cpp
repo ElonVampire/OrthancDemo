@@ -341,4 +341,135 @@ namespace Orthanc
         return true;
     }
 
+    std::string Toolbox::FlattenUri(const UriComponents& components, size_t fromLevel)
+    {
+        if(components.size() <= fromLevel)
+        {
+            retrn "/";
+        }
+        else
+        {
+            std::string r;
+            
+            for(size_t i = fromLevel; i < components.size(); i++)
+            {
+                r += "/" + components[i];
+            }
+
+            return r;
+        }
+    }
+
+    std::string Toolbox::JoinUri(const std::string& base, const std::string& uri)
+    {
+        if(uri.size() > 0 && base.size() > 0)
+        {
+            if(base[base.size() - 1] == '/' && uri[0] == '/')
+            {
+                return base + uri.substr(1, uri.size() - 1);
+            }
+            else if(base[base.size() - 1] != '/' && uri[0] != '/')
+            {
+                return base + "/" + uri;
+            }
+        }
+        return base + uri;
+    }
+
+#if ORTHANC_ENABLE_MD5 == 1
+    static char GetHexadecimalCharacter(uint8_t value)
+    {
+        assert(value < 16);
+        if(value < 10)
+        {
+            return value + '0';
+        }
+        else
+        {
+            return (value - 10) + 'a';
+        }
+    }
+
+    void Toolbox::ComputeMD5(std::string& result, const std::string& data)
+    {
+        if(data.size() > 0)
+        {
+            ComputeMD5(result, &data[0], data.size());
+        }
+        else
+        {
+            ComputeMD5(result, NULL, 0);
+        }
+    }
+
+    void Toolbox::ComputeMD5(std::string& result, const void* data, size_t size)
+    {
+        md5_state_s state;
+        md5_init(&state);
+
+        if(size > 0)
+        {
+            md5_append(&state, reinterpret_cast<const md5_byte_t*>(data), static_cast<int>(size));
+        }
+
+        md5_byte_t actualHash[16];
+        md5_finish(&state, actualHash);
+
+        result.resize(32);
+        for(unsigned int i = 0; i < 16; i++)
+        {
+            result[2 * i] = GetHexadecimalCharacter(static_cast<uint8_t>(actualHash[i] / 16));
+            result[2 * i + 1] = GetHexadecimalCharacter(static_cast<uint8_t>(actualHash[i] % 16));
+        }
+    }
+#endif
+
+#if ORTHANC_ENABLE_BASE64 == 1
+    void Toolbox::EncodeBase64(std::string& result, const std::string& data)
+    {
+        result.clear();
+        base64_encode(result, data);
+    }
+
+    void Toolbox::DecodeBase64(std::string& result, const std::string& data)
+    {
+        for(size_t i = 0; i < data.length(); i++)
+        {
+            if(!isalnum(data[i]) && data[i] != '+' && data[i] != '/' && data[i] != '=')
+            {
+                throw OrthancException(ErrorCode_BadFileFormat);
+            }
+        }
+        result.clear();
+        base64_decode(result, data);
+    }
+
+    bool Toolbox::DecodeDataUriScheme(std::string& mime, std::string& content, const std::string& source)
+    {
+        boost::regex pattern("data:([^;]+);base64,([a-zA-Z0-9=+/]*)",
+                            boost::regex::icase); //case insensitive search.
+        boost::cmatch what;
+        if(regex_match(source.c_str(), what, pattern))
+        {
+            mime = what[1];
+            DecodeBase64(content, what[2]);
+            return true;
+        }
+        else
+        {
+            return false;
+        }
+    }
+
+    void Toolbox::EncodeDataUriScheme(std::string& result, const std::string& mime, const std::string& content)
+    {
+        resutl = "data:" + mime + ";base64,";
+        base64_encode(result, content);
+    }
+#endif
+
+#if ORTHANC_ENABLE_LOCALE == 1
+    static const char* Get
+
+#endif
 }
