@@ -173,14 +173,14 @@ namespace Orthanc
     {
         lineEnd_ = lineStart_;
         while (lineEnd_ < content_.size() &&
-               content_[lineEnd_] != '\n' &&
-               content_[lineEnd_] != '\r')
+            content_[lineEnd_] != '\n' &&
+            content_[lineEnd_] != '\r')
         {
             lineEnd_ += 1;
         }
     }
 
-    void Toolbox::LinesIterator::LinesIterator(const std::string& content):
+    void Toolbox::LinesIterator::LinesIterator(const std::string& content) :
         content_(content),
         lineStart_(0)
     {
@@ -190,9 +190,9 @@ namespace Orthanc
     bool Toolbox::LinesIterator::GetLine(std::string& target) const
     {
         assert(lineStart_ <= content_.size() &&
-               lineEnd_ <= content_.size() &&
-               lineStart_ <= lineEnd_);
-        if(lineStart_ == content_.size())
+            lineEnd_ <= content_.size() &&
+            lineStart_ <= lineEnd_);
+        if (lineStart_ == content_.size())
         {
             return false;
         }
@@ -206,13 +206,13 @@ namespace Orthanc
     void Toolbox::LinesIterator::Next()
     {
         lineStart_ = lineEnd_;
-        if(lineStart_ != content_.size())
+        if (lineStart_ != content_.size())
         {
             assert(content_[lineStart_] == '\r' ||
-                   content_[lineStart_] == '\n');
+                content_[lineStart_] == '\n');
 
             char second;
-            if(content_[lineStart_] == '\r')
+            if (content_[lineStart_] == '\r')
             {
                 second = '\n';
             }
@@ -222,7 +222,7 @@ namespace Orthanc
             }
 
             lineStart_ += 1;
-            if(lineStart_ < content_.size() && content_[lineStart_] == second)
+            if (lineStart_ < content_.size() && content_[lineStart_] == second)
             {
                 lineStart_ += 1;
             }
@@ -258,7 +258,7 @@ namespace Orthanc
         static const char URI_SEPARATOR = '/';
         components.clear();
 
-        if(uri.size == 0 || uri[0] != URI_SEPARATOR)
+        if (uri.size == 0 || uri[0] != URI_SEPARATOR)
         {
             throw OrthancException(ErrorCode_UriSyntax);
         }
@@ -266,9 +266,9 @@ namespace Orthanc
         //Count the number of slashes in the URI to make an assumption
         // about the number of components in the URI
         unsigned int estimatedSize = 0;
-        for(unsigned int i = 0; i < uri.size(); i++)
+        for (unsigned int i = 0; i < uri.size(); i++)
         {
-            if(uri[i] == URI_SEPARATOR)
+            if (uri[i] == URI_SEPARATOR)
                 estimatedSize++;
         }
 
@@ -276,16 +276,16 @@ namespace Orthanc
 
         unsigned int start = 1;
         unsigned int end = 1;
-        while(end < uri.size())
+        while (end < uri.size())
         {
             // This is the loop invariant
             assert(uri[start - 1] == '/' && (end >= start));
 
-            if(uri[end] == '/')
+            if (uri[end] == '/')
             {
                 components.push_back(std::string(&uri[start], end - start));
                 end++;
-                start=end;
+                start = end;
             }
             else
             {
@@ -293,14 +293,14 @@ namespace Orthanc
             }
         }
 
-        if(start < uri.size())
+        if (start < uri.size())
         {
             components.push_back(std::string(&uri[start], end - start));
         }
 
-        for(size_t i = 0; i < components.size(); i++)
+        for (size_t i = 0; i < components.size(); i++)
         {
-            if(components[i].size() == 0)
+            if (components[i].size() == 0)
             {
                 //Empty component, as in: "/coucou//e"
                 throw OrthancException(ErrorCode_UriSyntax);
@@ -311,12 +311,12 @@ namespace Orthanc
     void Toolbox::TruncateUri(UriComponents& target, const UriComponents& source, size_t fromLevel)
     {
         target.clear();
-        if(source.size() > fromLevel)
+        if (source.size() > fromLevel)
         {
             target.resize(source.size() - fromLevel);
 
             size_t j = 0;
-            for(size_t i = fromLevel; i < source.size(); i++, j++)
+            for (size_t i = fromLevel; i < source.size(); i++, j++)
             {
                 target[j] = source[i];
             }
@@ -327,14 +327,14 @@ namespace Orthanc
 
     bool Toolbox::IsChildUri(const UriComponents& baseUri, const UriComponents& testedUri)
     {
-        if(testedUri.size() < baseUri.size())
+        if (testedUri.size() < baseUri.size())
         {
             return false;
         }
 
-        for(size_t i = 0; i < baseUri.size(); i++)
+        for (size_t i = 0; i < baseUri.size(); i++)
         {
-            if(baseUri[i] != testedUri[i])
+            if (baseUri[i] != testedUri[i])
                 return false;
         }
 
@@ -343,15 +343,15 @@ namespace Orthanc
 
     std::string Toolbox::FlattenUri(const UriComponents& components, size_t fromLevel)
     {
-        if(components.size() <= fromLevel)
+        if (components.size() <= fromLevel)
         {
             retrn "/";
         }
         else
         {
             std::string r;
-            
-            for(size_t i = fromLevel; i < components.size(); i++)
+
+            for (size_t i = fromLevel; i < components.size(); i++)
             {
                 r += "/" + components[i];
             }
@@ -362,13 +362,13 @@ namespace Orthanc
 
     std::string Toolbox::JoinUri(const std::string& base, const std::string& uri)
     {
-        if(uri.size() > 0 && base.size() > 0)
+        if (uri.size() > 0 && base.size() > 0)
         {
-            if(base[base.size() - 1] == '/' && uri[0] == '/')
+            if (base[base.size() - 1] == '/' && uri[0] == '/')
             {
                 return base + uri.substr(1, uri.size() - 1);
             }
-            else if(base[base.size() - 1] != '/' && uri[0] != '/')
+            else if (base[base.size() - 1] != '/' && uri[0] != '/')
             {
                 return base + "/" + uri;
             }
@@ -380,7 +380,7 @@ namespace Orthanc
     static char GetHexadecimalCharacter(uint8_t value)
     {
         assert(value < 16);
-        if(value < 10)
+        if (value < 10)
         {
             return value + '0';
         }
@@ -392,7 +392,7 @@ namespace Orthanc
 
     void Toolbox::ComputeMD5(std::string& result, const std::string& data)
     {
-        if(data.size() > 0)
+        if (data.size() > 0)
         {
             ComputeMD5(result, &data[0], data.size());
         }
@@ -407,7 +407,7 @@ namespace Orthanc
         md5_state_s state;
         md5_init(&state);
 
-        if(size > 0)
+        if (size > 0)
         {
             md5_append(&state, reinterpret_cast<const md5_byte_t*>(data), static_cast<int>(size));
         }
@@ -416,7 +416,7 @@ namespace Orthanc
         md5_finish(&state, actualHash);
 
         result.resize(32);
-        for(unsigned int i = 0; i < 16; i++)
+        for (unsigned int i = 0; i < 16; i++)
         {
             result[2 * i] = GetHexadecimalCharacter(static_cast<uint8_t>(actualHash[i] / 16));
             result[2 * i + 1] = GetHexadecimalCharacter(static_cast<uint8_t>(actualHash[i] % 16));
@@ -433,9 +433,9 @@ namespace Orthanc
 
     void Toolbox::DecodeBase64(std::string& result, const std::string& data)
     {
-        for(size_t i = 0; i < data.length(); i++)
+        for (size_t i = 0; i < data.length(); i++)
         {
-            if(!isalnum(data[i]) && data[i] != '+' && data[i] != '/' && data[i] != '=')
+            if (!isalnum(data[i]) && data[i] != '+' && data[i] != '/' && data[i] != '=')
             {
                 throw OrthancException(ErrorCode_BadFileFormat);
             }
@@ -447,9 +447,9 @@ namespace Orthanc
     bool Toolbox::DecodeDataUriScheme(std::string& mime, std::string& content, const std::string& source)
     {
         boost::regex pattern("data:([^;]+);base64,([a-zA-Z0-9=+/]*)",
-                            boost::regex::icase); //case insensitive search.
+            boost::regex::icase); //case insensitive search.
         boost::cmatch what;
-        if(regex_match(source.c_str(), what, pattern))
+        if (regex_match(source.c_str(), what, pattern))
         {
             mime = what[1];
             DecodeBase64(content, what[2]);
@@ -469,7 +469,208 @@ namespace Orthanc
 #endif
 
 #if ORTHANC_ENABLE_LOCALE == 1
-    static const char* Get
+    static const char* GetBoostLocaleEncoding(const Encoding sourceEncoding)
+    {
+        switch (sourceEncoding)
+        {
+        case Encoding_Utf8:
+            return "UTF-8";
 
+        case Encoding_Ascii:
+            return "ASCII";
+
+        case Encoding_Latin1:
+            return "ISO-8859-1";
+
+        case Encoding_Latin2:
+            return "ISO-8859-2";
+
+        case Encoding_Latin3:
+            return "ISO-8859-3";
+
+        case Encoding_Latin4:
+            return "ISO-8859-4";
+
+        case Encoding_Latin5:
+            return "ISO-8859-9";
+
+        case Encoding_Cyrillic:
+            return "ISO-8859-5";
+
+        case Encoding_Windows1251:
+            return "WINDOWS-1251";
+
+        case Encoding_Arabic:
+            return "ISO-8859-6";
+
+        case Encoding_Greek:
+            return "ISO-8859-7";
+
+        case Encoding_Hebrew:
+            return "ISO-8859-8";
+
+        case Encoding_Japanese:
+            return "SHIFT-JIS";
+
+        case Encoding_Chinese:
+            return "GB18030";
+
+        case Encoding_Thai:
+#if BOOST_LOCALE_WITH_ICU == 1
+            return "tis620.2533";
+#else
+            return "TIS620.2533-0";
 #endif
+
+        case Encoding_Korean:
+            return "ISO-IR-149";
+
+        case Encoding_JapaneseKanji:
+            return "JIS";
+
+        case Encoding_SimplifiedChinese:
+            return "GB2312";
+
+        default:
+            throw OrthancException(ErrorCode_NotImplemented);
+        }
+    }
+#endif
+
+#if ORTHANC_ENABLE_LOCALE == 1
+    std::string Toolbox::ConvertToUtf8(const std::string& source, Encoding sourceEncoding, bool hasCodeExtensions)
+    {
+#if ORTHANC_STATIC_ICU
+        if (globalIcuData_.empty())
+        {
+            throw OrthancException(ErrorCode_BadSequenceOfCalls,
+                "Call Toolbox::InitializeGlobalLocale()");
+        }
+#endif
+        // The "::skip" flag makes boost skip invalid UTF-8
+        // characters. This can occur in badly-encoded DICOM files.
+        try
+        {
+            if (sourceEncoding == Encoding_Ascii)
+            {
+                return ConvertToAscii(source);
+            }
+            else
+            {
+                std::string s;
+                if (sourceEncoding == Encoding_Utf8)
+                {
+                    // Already in UTF-8: No conversion is required, but we ensure
+                    // the output is correctly encoded                    
+                    s = boost::locale::conv::utf_to_utf<char>(source, boost::locale::conv::skip);
+                }
+                else
+                {
+                    const char* encoding = GetBoostLocaleEncoding(sourceEncoding);
+                    s = boost::locale::conv::to_utf<char>(source, encoding, boost::locale::conv::skip);
+                }
+
+                if (hasCodeExtension)
+                {
+                    std::string t;
+                    RemoveIso2022EscapeSequences(t, s);
+                    return t;
+                }
+                else
+                {
+                    return s;
+                }
+            }
+        }
+        catch(std::runtime_error& e)
+        {
+            //Bad input string or bad encoding
+            LOG(INFO) << e.what();
+            return ConvertToAscii(source);
+        }
+    }
+#endif
+
+#if ORTHANC_ENABLE_LOCALE == 1
+    std::string Toolbox::ConvertFromUtf8(const std::string& source, Encoding targetEncoding)
+    {
+#if ORTHANC_STATIC_ICU == 1
+        if(globalIcuData_.empty())
+        {
+            throw OrthancException(ErrorCode_BadSequenceOfCalls,
+                                "Call Toolbox::InitializeGlobalLocale()");
+        }
+#endif
+        // The "::skip" flag makes boost skip invalid UTF-8
+        // characters. This can occur in badly-encoded DICOM files.
+        try
+        {
+            if(targetEncoding == Encoding_utf8)
+            {
+                // Already in UTF-8: No conversion is required.
+                return boost::locale::conv::utf_to_utf<char>(source, boost::locale::conv::skip);
+            }
+            else if(targetEncoding == Encoding_Ascii)
+            {
+                return ConvertToAscii(source);
+            }
+            else
+            {
+                const char* encoding = GetBoostLocaleEncoding(targetEncoding);
+                return boost::locale::conv::from_utf<char>(source, encoding, boost::locale::conv::skip);
+            }
+        }
+        catch(std::runtime_error&)
+        {
+            //Bad input string or bad encoding
+            return ConvertToAscii(source);
+        }
+    }
+#endif
+
+    static bool IsAsciiCharacter(uint8_t c)
+    {
+        return (c != 0 && c <= 127 && (c == '\n' || !iscntrl(c)));
+    }
+
+    bool Toolbox::IsAsciiString(const void* data, size_t size)
+    {
+        const uint8_t* p = reinterpret_cast<const uint8_t*>(data);
+
+        for (size_t i = 0; i < size; i++, p++)
+        {
+        if (!IsAsciiCharacter(*p))
+        {
+            return false;
+        }
+        }
+
+        return true;        
+    }
+
+    bool Toolbox::IsAsciiString(const std::string& s)
+    {
+        return IsAsciiString(s.c_str(), s.size());
+    }
+
+    std::string Toolbox::ConvertToAscii(const std::string& source)
+    {
+        std::string result;
+
+        result.reserve(source.size() + 1);
+        for (size_t i = 0; i < source.size(); i++)
+        {
+            if (IsAsciiCharacter(source[i]))
+            {
+            result.push_back(source[i]);
+            }
+        }
+
+        return result;
+    }
+
+    void Toolbox::ComputeSHA1(std::string& result, const void* data, size_t size)
+    {
+        
+    }
 }
