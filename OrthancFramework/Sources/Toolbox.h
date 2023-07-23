@@ -132,11 +132,11 @@ namespace Orthanc
 
         static std::string WildcardToRegularExpression(const std::string& s);
 
-        static void TokenizString(std::vector<std::string>& result, const std::string& source, char separator);
+        static void TokenizeString(std::vector<std::string>& result, const std::string& source, char separator);
 
-        static void JoinStrings(std::string& result, std::set<std::string>& source, const char* spearator);
+        static void JoinStrings(std::string& result, const std::set<std::string>& source, const char* spearator);
 
-        static void JoinStrings(std::string& result, std::vector<std::string>& source, const char* separator);
+        static void JoinStrings(std::string& result, const std::vector<std::string>& source, const char* separator);
 
         //return true if all element of 'needles' are found in 'haystack'
         template <typename T> static bool IsSetInSet(const std::set<T>& needles, const std::set<T>& haystack)
@@ -241,7 +241,7 @@ namespace Orthanc
 
         static std::string GenerateUuid();
 
-        static std::string SubstitueVariables(const std::string& source, 
+        static std::string SubstituteVariables(const std::string& source, 
                                               const std::map<std::string, std::string>& dictionary);
 
         static void RemoveIso2022EscapeSequences(std::string& dest,     
