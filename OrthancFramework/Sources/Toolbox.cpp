@@ -2114,5 +2114,194 @@ namespace Orthanc
         return "2.25." + LargeHexadecimalToDecimal(hex);
     }
 
+    void Toolbox::SimplifyDicomAsJson(Json::Value& target,
+                                        const Json::Value& source,
+                                        DicomToJsonFormat format)
+    {
+        if (!source.isObject())
+        {
+            throw OrthancException(ErrorCode_BadFileFormat);
+        }
 
+        target = Json::objectValue;
+        Json::Value::Members members = source.getMemberNames();
+
+        for (size_t i = 0; i < members.size(); i++)
+        {
+            const Json::Value& v = source[members[i]];
+            const std::string& type = v["Type"].asString();
+
+            std::string name;
+            switch (format)
+            {
+                case DicomToJsonFormat_Human:
+                    name = v["Name"].asString();
+                    break;
+
+                case DicomToJsonFormat_Short:
+                    name = members[i];
+                    break;
+
+                default:
+                    throw OrthancException(ErrorCode_ParameterOutOfRange);
+            }
+
+            if (type == "String")
+            {
+                target[name] = v["Value"].asString();
+            }
+            else if (type == "TooLong" ||
+                    type == "Null" ||
+                    type == "Binary")
+            {
+                target[name] = Json::nullValue;
+            }
+            else if (type == "Sequence")
+            {
+                const Json::Value& array = v["Value"];
+                assert(array.isArray());
+
+                Json::Value children = Json::arrayValue;
+                for (Json::Value::ArrayIndex j = 0; j < array.size(); j++)
+                {
+                    Json::Value c;
+                    SimplifyDicomAsJson(c, array[j], format);
+                    children.append(c);
+                }
+
+                target[name] = children;
+            }
+            else
+            {
+                assert(0);
+            }
+        }
+    }
+
+    static bool ReadJsonInternal(Json::Value& target, const void* buffer, 
+                                 size_t size, bool collectComments)
+    {
+#if JSONCPP_USE_DEPRECATED == 1
+        Json::Reader reader;
+        return reader.parse(reinterpret_cast<const char*>(buffer),
+                           reinterpret_cast<const char*>(buffer) + size, target, collectComments);
+#else
+        Json::CharReaderBuilder builder;
+        builder.settings_["collectComments"] = collectComments;
+        
+        const std::unique_ptr<Json::CharReader> reader(builder.newCharReader());
+        assert(reader.get() != NULL);
+        
+        JSONCPP_STRING err;
+        if (reader->parse(reinterpret_cast<const char*>(buffer),
+                        reinterpret_cast<const char*>(buffer) + size, &target, &err))
+        {
+        return true;
+        }
+        else
+        {
+        LOG(ERROR) << "Cannot parse JSON: " << err;
+        return false;
+        }
+#endif
+    } 
+
+    bool Toolbox::ReadJson(Json::Value& target,
+                            const std::string& source)
+    {
+        return ReadJson(target, source.empty() ? NULL : source.c_str(), source.size());
+    }
+  
+
+    bool Toolbox::ReadJson(Json::Value& target,
+                            const void* buffer,
+                            size_t size)
+    {
+        return ReadJsonInternal(target, buffer, size, true);
+    }
+  
+
+    bool Toolbox::ReadJsonWithoutComments(Json::Value& target,
+                                            const std::string& source)
+    {
+        return ReadJsonWithoutComments(target, source.empty() ? NULL : source.c_str(), source.size());
+    }
+  
+
+    bool Toolbox::ReadJsonWithoutComments(Json::Value& target,
+                                            const void* buffer,
+                                            size_t size)
+    {
+        return ReadJsonInternal(target, buffer, size, false);
+    }
+
+    void Toolbox::WriteFastJson(std::string& target,
+                              const Json::Value& source)
+    {
+#if JSONCPP_USE_DEPRECATED == 1
+        Json::FastWriter writer;
+        target = writer.write(source);
+#else
+        Json::StreamWriterBuilder builder;
+        builder.settings_["indentation"] = "";
+        target = Json::writeString(builder, source);
+#endif
+    }
+
+    void Toolbox::WriteStyledJson(std::string& target,
+                                const Json::Value& source)
+    {
+#if JSONCPP_USE_DEPRECATED == 1
+        Json::StyledWriter writer;
+        target = writer.write(source);
+#else
+        Json::StreamWriterBuilder builder;
+        builder.settings_["indentation"] = "   ";
+        target = Json::writeString(builder, source);
+#endif
+    }
+
+    void Toolbox::RemoveSurroundingQuotes(std::string& value)
+    {
+        if (!value.empty() &&
+            value[0] == '\"' &&
+            value[value.size() - 1] == '\"')
+        {
+            value = value.substr(1, value.size() - 2);
+        }
+    }
+  
+}
+
+OrthancLinesIterator* OrthancLinesIterator_Create(const std::string& content)
+{
+    return reinterpret_cast<OrthancLinesIterator*>(new Orthanc::Toolbox::LinesIterator(content));
+}
+
+bool OrthancLinesIterator_GetLine(std::string& target, const OrthancLinesIterator* iterator)
+{
+    if(iterator != NULL)
+    {
+        return reinterpret_cast<const Orthanc::Toolbox::LinesIterator*>(iterator)->GetLine(target);
+    }
+    else
+    {
+        return false;
+    }
+}
+
+void OrthancLinesIterator_Next(OrthancLinesIterator* iterator)
+{
+    if(iterator != NULL)
+    {
+        reinterpret_cast<Orthanc::Toolbox::LinesIterator*>(iterator)->Next();
+    }
+}
+
+void OrthancLinesIterator_Free(OrthancLinesIterator* iterator)
+{
+    if(iterator != NULL)
+    {
+        delete reinterpret_cast<Orthanc::Toolbox::LinesIterator*>(iterator);
+    }
 }

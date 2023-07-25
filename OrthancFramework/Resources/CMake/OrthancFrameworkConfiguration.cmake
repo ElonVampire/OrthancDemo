@@ -30,6 +30,7 @@ include(${CMAKE_CURRENT_LIST_DIR}/Compiler.cmake)
 ## Disable unneeded macros
 #####################################################################
 
+message("=====================>ENABLE_SQLITE: ${ENABLE_SQLITE}")
 if (NOT ENABLE_SQLITE)
   unset(USE_SYSTEM_SQLITE CACHE)
   add_definitions(-DORTHANC_ENABLE_SQLITE=0)
@@ -48,6 +49,7 @@ if (NOT ENABLE_CRYPTO_OPTIONS)
     )
 endif()
 
+message("=====================>ENABLE_WEB_CLIENT: ${ENABLE_WEB_CLIENT}")
 if (NOT ENABLE_WEB_CLIENT)
   unset(USE_SYSTEM_CURL CACHE)
   add_definitions(-DORTHANC_ENABLE_CURL=0)
@@ -63,21 +65,25 @@ if (NOT ENABLE_WEB_SERVER)
     )
 endif()
 
+message("=====================>ENABLE_JPEG: ${ENABLE_JPEG}")
 if (NOT ENABLE_JPEG)
   unset(USE_SYSTEM_LIBJPEG CACHE)
   add_definitions(-DORTHANC_ENABLE_JPEG=0)
 endif()
 
+message("=====================>ENABLE_ZLIB: ${ENABLE_ZLIB}")
 if (NOT ENABLE_ZLIB)
   unset(USE_SYSTEM_ZLIB CACHE)
   add_definitions(-DORTHANC_ENABLE_ZLIB=0)
 endif()
 
+message("=====================>ENABLE_PNG: ${ENABLE_PNG}")
 if (NOT ENABLE_PNG)
   unset(USE_SYSTEM_LIBPNG CACHE)
   add_definitions(-DORTHANC_ENABLE_PNG=0)
 endif()
 
+message("=====================>ENABLE_LUA: ${ENABLE_LUA}")
 if (NOT ENABLE_LUA)
   unset(USE_SYSTEM_LUA CACHE)
   unset(ENABLE_LUA_MODULES CACHE)
@@ -85,21 +91,25 @@ if (NOT ENABLE_LUA)
   add_definitions(-DORTHANC_ENABLE_LUA=0)
 endif()
 
+message("=====================>ENABLE_PUGIXML: ${ENABLE_PUGIXML}")
 if (NOT ENABLE_PUGIXML)
   unset(USE_SYSTEM_PUGIXML CACHE)
   add_definitions(-DORTHANC_ENABLE_PUGIXML=0)
 endif()
 
+message("=====================>ENABLE_LOCALE: ${ENABLE_LOCALE}")
 if (NOT ENABLE_LOCALE)
   unset(BOOST_LOCALE_BACKEND CACHE)
   add_definitions(-DORTHANC_ENABLE_LOCALE=0)
 endif()
 
+message("=====================>ENABLE_GOOGLE_TEST: ${ENABLE_GOOGLE_TEST}")
 if (NOT ENABLE_GOOGLE_TEST)
   unset(USE_SYSTEM_GOOGLE_TEST CACHE)
   unset(USE_GOOGLE_TEST_DEBIAN_PACKAGE CACHE)
 endif()
 
+message("=====================>ENABLE_DCMTK: ${ENABLE_DCMTK}")
 if (NOT ENABLE_DCMTK)
   add_definitions(
     -DORTHANC_ENABLE_DCMTK=0
@@ -485,6 +495,6 @@ set(ORTHANC_CORE_SOURCES_DEPENDENCIES
   ${UUID_SOURCES}
   # ${ZLIB_SOURCES}
 
-  # ${CMAKE_CURRENT_LIST_DIR}/../../Resources/ThirdParty/md5/md5.c
-  # ${CMAKE_CURRENT_LIST_DIR}/../../Resources/ThirdParty/base64/base64.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/../../Resources/ThirdParty/md5/md5.c
+  ${CMAKE_CURRENT_LIST_DIR}/../../Resources/ThirdParty/base64/base64.cpp
   )
