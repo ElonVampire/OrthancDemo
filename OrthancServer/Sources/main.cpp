@@ -7,6 +7,70 @@
 
 using namespace Orthanc;
 
+static void PrintHelp(const char* path)
+{
+    std::cout 
+        << "Usage: " << path << " [OPTION]... [CONFIGURATION]" << std::endl
+        << "Orthanc, lightweight, RESTful DICOM server for healthcare and medical research." << std::endl
+        << std::endl
+        << "The \"CONFIGURATION\" argument can be a single file or a directory. In the " << std::endl
+        << "case of a directory, all the JSON files it contains will be merged. " << std::endl
+        << "If no configuration path is given on the command line, a set of default " << std::endl
+        << "parameters is used. Please refer to the Orthanc Book for the full " << std::endl
+        << "instructions about how to use Orthanc <http://book.orthanc-server.com/>." << std::endl
+        << std::endl
+        << "Pay attention to the fact that the order of the options is important." << std::endl
+        << "Options are read left to right. In particular, options such as \"--verbose\" can " << std::endl
+        << "reset the value of other log-related options that were read before." << std::endl
+        << std::endl
+        << "The recommended set of options to debug DICOM communications is " << std::endl
+        << "\"--verbose --trace-dicom --logfile=dicom.log\"" << std::endl
+        << std::endl
+        << "Command-line options:" << std::endl
+        << "  --help\t\tdisplay this help and exit" << std::endl
+        << "  --logdir=[dir]\tdirectory where to store the log files" << std::endl
+        << "\t\t\t(by default, the log is dumped to stderr)" << std::endl
+        << "  --logfile=[file]\tfile where to store the log of Orthanc" << std::endl
+        << "\t\t\t(by default, the log is dumped to stderr)" << std::endl
+        << "  --config=[file]\tcreate a sample configuration file and exit" << std::endl
+        << "\t\t\t(if \"file\" is \"-\", dumps to stdout)" << std::endl
+        << "  --errors\t\tprint the supported error codes and exit" << std::endl
+        << "  --verbose\t\tbe verbose in logs" << std::endl
+        << "  --trace\t\thighest verbosity in logs (for debug)" << std::endl
+        << "  --upgrade\t\tallow Orthanc to upgrade the version of the" << std::endl
+        << "\t\t\tdatabase (beware that the database will become" << std::endl
+        << "\t\t\tincompatible with former versions of Orthanc)" << std::endl
+        << "  --no-jobs\t\tdon't restart the jobs that were stored during" << std::endl
+        << "\t\t\tthe last execution of Orthanc" << std::endl
+        << "  --openapi=[file]\twrite the OpenAPI documentation and exit" << std::endl
+        << "\t\t\t(if \"file\" is \"-\", dumps to stdout)" << std::endl
+        << "  --cheatsheet=[file]\twrite the cheat sheet of REST API as CSV" << std::endl
+        << "\t\t\tand exit (if \"file\" is \"-\", dumps to stdout)" << std::endl
+        << "  --version\t\toutput version information and exit" << std::endl
+        << std::endl
+        << "Fine-tuning of log categories:" << std::endl;
+    
+    for (size_t i = 0; i < Logging::GetCategoriesCount(); i++)
+    {
+        const std::string name = Logging::GetCategoryName(i);
+        std::cout << "  --version-" << name
+                  << "\tbe verbose in logs of category \"" << name << "\"" << std::endl;
+        std::cout << "  --trace-" << name
+                  << "\tuse highest verbosity for logs of category \"" << name << "\"" << std::endl;
+    }
+
+    std::cout
+        << std::endl
+        << "Exit status:" << std::endl
+        << "  0\tif success," << std::endl
+#if defined(_WIN32)
+        << "  != 0\tif error (use the --errors option to get the list of possible errors)." << std::endl
+#else
+        << "  -1\tif error (have a look at the logs)." << std::endl
+#endif
+        << std::endl;
+}
+
 static void PrintVersion(const char* path)
 {
     std::cout
@@ -207,6 +271,18 @@ int main(int argc, char* argv[])
             PrintErrors(argv[0]);
             return 0;
         }
+        else if (argument == "--help")
+        {
+            PrintHelp(argv[0]);
+            return 0;
+        }
+        else if (argument == "--version")
+        {
+            PrintVersion(argv[0]);
+            return 0;
+        }
+
+        
     }
 
 
