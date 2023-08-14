@@ -33,7 +33,7 @@ namespace Orthanc
         Content content_;
 
         // Warning: This takes the ownership of "value"
-        void SetValueInterval(uint16_t group, uint16_t element, DicomValue* value);
+        void SetValueInternal(uint16_t group, uint16_t element, DicomValue* value);
 
         // used for unit tests only
         static void ResetDefaultMainDicomTags();
