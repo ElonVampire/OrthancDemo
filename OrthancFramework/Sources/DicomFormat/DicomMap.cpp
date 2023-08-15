@@ -693,6 +693,340 @@ namespace Orthanc
 
     static uint16_t ReadLittleEndianUint16(const char* dicom)
     {
+        const uint8_t* p = reinterpret_cast<const uint8_t*>(dicom);
+
+        return (static_cast<uint16_t>(p[0]) | (static_cast<uint16_t>(p[1]) << 8));
+    }
+
+    static uint32_t ReadLittleEndianUint32(const char* dicom)
+    {
+        const uint8_t* p = reinterpret_cast<const uint8_t*>(dicom);
+
+        return (static_cast<uint32_t>(p[0]) |
+                (static_cast<uint32_t>(p[1]) << 8) |
+                (static_cast<uint32_t>(p[2]) << 16) |
+                (static_cast<uint32_t>(p[3]) << 24) );
+    }
+
+    static bool ValidateTag(const ValueRepresentation& vr,  const std::string& value)
+    {
+        switch (vr)
+        {
+        case ValueRepresentation_ApplicationEntity:
+            return value.size() <= 16;
+        
+        case ValueRepresentation_AgeString:
+            return (value.size() == 4 &&
+                    isdigit(value[0]) &&
+                    isdigit(value[1]) &&
+                    isdigit(value[2]) &&
+                    (value[3] == 'D' || value[3] == 'W' || value[3] == 'M' || value[3] == 'Y'));
+
+        case ValueRepresentation_AttributeTag:
+            return value.size() == 4;
+
+        case ValueRepresentation_CodeString:
+            return value.size() <= 16;
+
+        case ValueRepresentation_Date:
+            return value.size() <= 18;
+
+        case ValueRepresentation_DecimalString:
+            return value.size() <= 16;
+
+        case ValueRepresentation_DateTime:
+            return value.size() <= 54;
+
+        case ValueRepresentation_FloatingPointSingle:
+            return value.size() == 4;
+
+        case ValueRepresentation_FloatingPointDouble:
+            return value.size() == 8;
+
+        case ValueRepresentation_IntegerString:
+            return value.size() <= 12;
+
+        case ValueRepresentation_LongString:
+            return value.size() <= 64;
+
+        case ValueRepresentation_LongText:
+            return value.size() <= 10240;
+
+        case ValueRepresentation_OtherByte:
+            return true;
+
+        case ValueRepresentation_OtherDouble:
+            return value.size() <= (static_cast<uint64_t>(1) << 32) - 8;
+
+        case ValueRepresentation_OtherFloat:
+            return value.size() <= (static_cast<uint64_t>(1) << 32) - 4;
+
+        case ValueRepresentation_OtherLong:
+            return true;
+
+        case ValueRepresentation_OtherWord:
+            return true;
+
+        case ValueRepresentation_PersonName:
+            return true;
+
+        case ValueRepresentation_ShortString:
+            return value.size() <= 16;
+
+        case ValueRepresentation_SignedLong:
+            return value.size() == 4;
+
+        case ValueRepresentation_Sequence:
+            return true;    
+
+        case ValueRepresentation_SignedShort:
+            return value.size() == 2;
+
+        case ValueRepresentation_ShortText:
+            return value.size() <= 1024;
+
+        case ValueRepresentation_Time:
+            return value.size() <= 28;
+
+        case ValueRepresentation_UnlimitedCharacters:
+            return value.size() <= (static_cast<uint64_t>(1) << 32) - 2;
+
+        case ValueRepresentation_UniqueIdentifier:
+            return value.size() <= 64;
+
+        case ValueRepresentation_UnsignedLong:
+            return value.size() == 4;
+
+        case ValueRepresentation_Unknown:
+            return true;
+
+        case ValueRepresentation_UniversalResource:
+            return value.size() <= (static_cast<uint64_t>(1) << 32) - 2;
+
+        case ValueRepresentation_UnsignedShort:
+            return value.size() == 2;
+
+        case ValueRepresentation_UnlimitedText:
+            return value.size() <= (static_cast<uint64_t>(1) << 32) - 2;
+
+        default:
+            // Assume unsupported tags are OK
+            return true;
+        }
+    }
+
+    static void RemoveTagPadding(std::string& value, const ValueRepresentation& vr)
+    {
+        /**
+         * Remove padding from character strings, if need be. For the time
+         * being, only the UI VR is supported.
+         * http://dicom.nema.org/medical/dicom/current/output/chtml/part05/sect_6.2.html
+         **/
+
+        switch (vr)
+        {
+        case ValueRepresentation_UniqueIdentifier:
+        {
+            /**
+             * "Values with a VR of UI shall be padded with a single
+             * trailing NULL (00H) character when necessary to achieve even
+             * length."
+             **/
+
+            if (!value.empty() &&
+                value[value.size() - 1] == '\0')
+            {
+                value.resize(value.size() - 1);
+            }
+
+            break;
+        }
+
+        /**
+         * TODO implement other VR
+         **/
+
+        default:
+            // No padding is applicable to this VR
+            break;
+        }        
+    }
+
+    static bool ReadNextTag(DicomTag& tag,
+                            ValueRepresentation& vr, 
+                            std::string& value,
+                            const char* dicom,
+                            size_t size,
+                            size_t& position)
+    {
+        /**
+         * http://dicom.nema.org/medical/dicom/current/output/chtml/part05/chapter_7.html#sect_7.1.2
+         * This function reads a data element with Explicit VR encoded using Little-Endian.
+         **/
+        if (position + 6 > size)
+        {
+            return false;
+        }
+
+        tag = DicomTag(ReadLittleEndianUint16(dicom + position),
+                       ReadLittleEndianUint16(dicom + position + 2));
+
+        vr = StringToValueRepresentation(std::string(dicom + position + 4, 2), true);
+        if (vr == ValueRepresentation_NotSupported)
+        {
+            return false;
+        }
+
+        // http://dicom.nema.org/medical/dicom/current/output/chtml/part05/chapter_7.html#sect_7.1.2
+        if (vr == ValueRepresentation_ApplicationEntity   /* AE */ ||
+            vr == ValueRepresentation_AgeString           /* AS */ ||
+            vr == ValueRepresentation_AttributeTag        /* AT */ ||
+            vr == ValueRepresentation_CodeString          /* CS */ ||
+            vr == ValueRepresentation_Date                /* DA */ ||
+            vr == ValueRepresentation_DecimalString       /* DS */ ||
+            vr == ValueRepresentation_DateTime            /* DT */ ||
+            vr == ValueRepresentation_FloatingPointSingle /* FL */ ||
+            vr == ValueRepresentation_FloatingPointDouble /* FD */ ||
+            vr == ValueRepresentation_IntegerString       /* IS */ ||
+            vr == ValueRepresentation_LongString          /* LO */ ||
+            vr == ValueRepresentation_LongText            /* LT */ ||
+            vr == ValueRepresentation_PersonName          /* PN */ ||
+            vr == ValueRepresentation_ShortString         /* SH */ ||
+            vr == ValueRepresentation_SignedLong          /* SL */ ||
+            vr == ValueRepresentation_SignedShort         /* SS */ ||
+            vr == ValueRepresentation_ShortText           /* ST */ ||
+            vr == ValueRepresentation_Time                /* TM */ ||
+            vr == ValueRepresentation_UniqueIdentifier    /* UI */ ||
+            vr == ValueRepresentation_UnsignedLong        /* UL */ ||
+            vr == ValueRepresentation_UnsignedShort       /* US */)
+        {
+            /**
+             * This is Table 7.1-2. "Data Element with Explicit VR of AE,
+             * AS, AT, CS, DA, DS, DT, FL, FD, IS, LO, LT, PN, SH, SL, SS,
+             * ST, TM, UI, UL and US"
+             **/
+            if (position + 8 > size)
+            {
+                return false;
+            }
+
+            uint16_t length = ReadLittleEndianUint16(dicom + position + 6);
+            if (position + 8 + length > size)
+            {
+                return false;
+            }
+
+            value.assign(dicom + position + 8, length);
+            position += (8 + length);
+        }
+        else
+        {
+            /**
+             * This is Table 7.1-1. "Data Element with Explicit VR other
+             * than as shown in Table 7.1-2"
+             **/
+            if (positon + 12 > size)
+            {
+                return false;
+            }
+
+            uint16_t reserved = ReadLittleEndianUint16(dicom + position + 6);
+            if (reserved != 0)
+            {
+                return false;
+            }
+
+            uint16_t length = ReadLittleEndianUint16(dicom + position + 8);
+            if (position + 12 + length > size)
+            {
+                return false;
+            }
+
+            value.assign(dicom + position + 12, length);
+            position += (12 + length);
+        }
+
+        if (!ValidateTag(vr, value))
+        {
+            return false;
+        }
+
+        RemoveTagPadding(value, vr);
+
+        return true;
+    }
+
+    bool DicomMap::IsDicomFile(const char* dicom, size_t size)
+    {
+        /**
+         * http://dicom.nema.org/medical/dicom/current/output/chtml/part10/chapter_7.html
+         * According to Table 7.1-1, besides the "DICM" DICOM prefix, the
+         * file preamble (i.e. dicom[0..127]) should not be taken into
+         * account to determine whether the file is or is not a DICOM file.
+         **/
+        const uint8_t* p = reinterpret_cast<const uint8_t*>(dicom);
+
+        return (size >= 132 &&
+                p[128] == 'D' &&
+                p[129] == 'I' &&
+                p[130] == 'C' &&
+                p[131] == 'M');
+    }
+
+    bool DicomMap::ParseDicomMetaInformation(DicomMap& result, const void* dicom, size_t size)
+    {
+        if (!IsDicomFile(dicom, size))
+        {
+            return false;
+        }
+
+        /**
+         * The DICOM File Meta Information must be encoded using the
+         * Explicit VR Little Endian Transfer Syntax
+         * (UID=1.2.840.10008.1.2.1).
+         **/
+
+        result.Clear();
+
+        // First, we read the "File Meta Information Group Length" tag
+        // (0002,0000) to know where to stop reading the meta header
+        size_t position = 132;
+
+        DicomTag tag(0x0000, 0x0000);   // Dummy initialization
+        ValueRepresentation vr;
+        std::string value;
+        if (!ReadNextTag(tag, vr, value, reinterpret_cast<const char*>(dicom), size, position) ||
+            tag.GetGroup() != 0x0002 ||
+            tag.GetElement() != 0x0000 ||
+            vr != ValueRepresentation_UnsignedLong ||
+            value.size() != 4)
+        {
+            return false;
+        }
+
+        size_t stopPosition = positon + ReadLittleEndianUint32(value.c_str());
+        if (stopPosition > size)
+        {
+            return false;
+        }
+
+        while (position < stopPosition)
+        {
+            if (ReadNextTag(tag, vr, value, reinterpret_cast<const char*>(dicom), size, position))
+            {
+                result.SetValue(tag, value, IsBinaryValueRepresentation(vr));
+            }
+            else
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    static std::string ValueAsString(const DicomMap& summary, const DicomTag& tag)
+    {
         
     }
 
