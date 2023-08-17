@@ -1027,7 +1027,645 @@ namespace Orthanc
 
     static std::string ValueAsString(const DicomMap& summary, const DicomTag& tag)
     {
-        
+        const DicomValue& value = summary.GetValue(tag);
+        if (value.isNull())
+        {
+            return "(null)";
+        }
+        else
+        {
+            return value.GetContent();
+        }
     }
+
+    void DicomMap::LogMissingTagsForStore() const
+    {
+        std::string patientId, studyInstanceUid, seriesInstanceUid, sopInstanceUid;
+
+        if (HasTag(DICOM_TAG_PATIENT_ID))
+        {
+            patientId = ValueAsString(*this, DICOM_TAG_PATIENT_ID);
+        }
+
+        if (HasTag(DICOM_TAG_STUDY_INSTANCE_UID))
+        {
+            studyInstanceUid = ValueAsString(*this, DICOM_TAG_STUDY_INSTANCE_UID);
+        }
+
+        if (HasTag(DICOM_TAG_SERIES_INSTANCE_UID))
+        {
+            seriesInstanceUid = ValueAsString(*this, DICOM_TAG_SERIES_INSTANCE_UID);
+        }
+
+        if (HasTag(DICOM_TAG_SOP_INSTANCE_UID))
+        {
+            sopInstanceUid = ValueAsString(*this, DICOM_TAG_SOP_INSTANCE_UID);  
+        }
+
+        LogMissingTagsForStore(patientId, studyInstanceUid, seriesInstanceUid, sopInstanceUid);
+    }
+    
+    LogMissingTagsForStore(const std::string& patientId,
+                        const std::string& studyInstanceUid,
+                        const std::string& seriesInstanceUid,
+                        const std::string& sopInstanceUid)
+    {
+        std::string s, t;
+
+        if (!patientId.empty())
+        {
+            if (t.size() > 0)
+                t += ", ";
+            t += "PatientID=" + patientId;
+        }
+        else
+        {
+            if (s.size() > 0)
+                s += ", ";
+            s += "PatientID";
+        }
+
+        if (!studyInstanceUid.empty())
+        {
+            if (t.size() > 0)
+                t += ", ";
+            t += "StudyInstanceUID=" + studyInstanceUid;
+        }
+        else
+        {
+            if (s.size() > 0)
+                s += ", ";
+            s += "StudyInstanceUID";
+        }
+
+        if (!seriesInstanceUid.empty())
+        {
+            if (t.size() > 0)
+                t += ", ";
+            t += "SeriesInstanceUID=" + seriesInstanceUid;
+        }
+        else
+        {
+            if (s.size() > 0)
+                s += ", ";
+            s += "SeriesInstanceUID";
+        }
+
+        if (!sopInstanceUid.empty())
+        {
+            if (t.size() > 0)
+                t += ", ";
+            t += "SOPInstanceUID=" + sopInstanceUid;
+        }
+        else
+        {
+            if (s.size() > 0)
+                s += ", ";
+            s += "SOPInstanceUID";
+        }
+
+        if (t.size() == 0)
+        {
+            LOG(ERROR) << "Store has failed because all the required tags (" << s << ") are missing (is it a DICOMDIR file?)";
+        }
+        else
+        {
+            LOG(ERROR) << "Store has failed because required tags (" << s << ") are missing for the following instance: " << t;
+        }
+    }
+
+    bool DicomMap::LookupStringValue(std::string& result,
+                                    const DicomTag& tag,
+                                    bool allowBinary) const
+    {
+        const DicomValue* value = TestAndGetValue(tag);
+
+        if (value == NULL)
+        {
+            return false;
+        }
+        else
+        {
+            return value->CopyToString(result, allowBinary);
+        }
+    }
+    
+    bool DicomMap::ParseInteger32(int32_t& result,
+                                    const DicomTag& tag) const
+    {
+        const DicomValue* value = TestAndGetValue(tag);
+
+        if (value == NULL)
+        {
+            return false;
+        }
+        else
+        {
+            return value->ParseInteger32(result);
+        }
+    }
+
+    bool DicomMap::ParseInteger64(int64_t& result,
+                                    const DicomTag& tag) const
+    {
+        const DicomValue* value = TestAndGetValue(tag);
+
+        if (value == NULL)
+        {
+            return false;
+        }
+        else
+        {
+            return value->ParseInteger64(result);
+        }
+    }
+
+    bool DicomMap::ParseUnsignedInteger32(uint32_t& result,
+                                            const DicomTag& tag) const
+    {
+        const DicomValue* value = TestAndGetValue(tag);
+
+        if (value == NULL)
+        {
+            return false;
+        }
+        else
+        {
+            return value->ParseUnsignedInteger32(result);
+        }
+    }
+
+    bool DicomMap::ParseUnsignedInteger64(uint64_t& result,
+                                            const DicomTag& tag) const
+    {
+        const DicomValue* value = TestAndGetValue(tag);
+
+        if (value == NULL)
+        {
+            return false;
+        }
+        else
+        {
+            return value->ParseUnsignedInteger64(result);
+        }
+    }
+
+    bool DicomMap::ParseFloat(float& result,
+                                const DicomTag& tag) const
+    {
+        const DicomValue* value = TestAndGetValue(tag);
+
+        if (value == NULL)
+        {
+            return false;
+        }
+        else
+        {
+            return value->ParseFloat(result);
+        }
+    }
+
+    bool DicomMap::ParseFirstFloat(float& result,
+                                    const DicomTag& tag) const
+    {
+        const DicomValue* value = TestAndGetValue(tag);
+
+        if (value == NULL)
+        {
+            return false;
+        }
+        else
+        {
+            return value->ParseFirstFloat(result);
+        }
+    }
+
+    bool DicomMap::ParseDouble(double& result,
+                                const DicomTag& tag) const
+    {
+        const DicomValue* value = TestAndGetValue(tag);
+
+        if (value == NULL)
+        {
+            return false;
+        }
+        else
+        {
+            return value->ParseDouble(result);
+        }
+    }
+
+
+    void DicomMap::FromDicomAsJson(const Json::Value& dicomAsJson, bool append, bool parseSequences)
+    {
+        if (dicomAsJson.type() != Json::objectValue)
+        {
+            throw OrthancException(ErrorCode_BadFileFormat);
+        }
+        
+        if (!append)
+        {
+            Clear();
+        }
+    
+        Json::Value::Members tags = dicomAsJson.getMemberNames();
+        for (Json::Value::Members::const_iterator
+            it = tags.begin(); it != tags.end(); ++it)
+        {
+            DicomTag tag(0, 0);
+            if (!DicomTag::ParseHexadecimal(tag, it->c_str()))
+            {
+                throw OrthancException(ErrorCode_CorruptedFile);
+            }
+
+            const Json::Value& value = dicomAsJson[*it];
+
+            if (value.type() != Json::objectValue ||
+                !value.isMember("Type") ||
+                !value.isMember("Value") ||
+                value["Type"].type() != Json::stringValue)
+            {
+                throw OrthancException(ErrorCode_CorruptedFile);
+            }
+
+            if (value["Type"] == "String")
+            {
+                if (value["Value"].type() != Json::stringValue)
+                {
+                    throw OrthancException(ErrorCode_CorruptedFile);
+                }
+                else
+                {
+                    SetValue(tag, value["Value"].asString(), false /* not binary */);
+                }
+            }
+            else if (value["Type"] == "Sequence" && parseSequences)
+            {
+                if (value["Value"].type() != Json::arrayValue)
+                {
+                    throw OrthancException(ErrorCode_CorruptedFile);
+                }
+                else
+                {
+                    SetValue(tag, value["Value"]);
+                }
+            }
+        }
+    }
+
+
+    void DicomMap::Merge(const DicomMap& other)
+    {
+        for (Content::const_iterator it = other.content_.begin();
+            it != other.content_.end(); ++it)
+        {
+            assert(it->second != NULL);
+
+            if (content_.find(it->first) == content_.end())
+            {
+                content_[it->first] = it->second->Clone();
+            }
+        }
+    }
+
+
+    void DicomMap::MergeMainDicomTags(const DicomMap& other,
+                                        ResourceType level)
+    {
+        const std::set<DicomTag>& mainDicomTags = DicomMap::MainDicomTagsConfiguration::GetInstance().GetMainDicomTagsByLevel(level);
+
+        for (std::set<DicomTag>::const_iterator itmt = mainDicomTags.begin();
+            itmt != mainDicomTags.end(); ++itmt)
+        {
+            Content::const_iterator found = other.content_.find(*itmt);
+
+            if (found != other.content_.end() &&
+                content_.find(*itmt) == content_.end())
+            {
+                assert(found->second != NULL);
+                content_[*itmt] = found->second->Clone();
+            }
+        }
+    }
+    
+
+    void DicomMap::ExtractMainDicomTags(const DicomMap& other)
+    {
+        Clear();
+        MergeMainDicomTags(other, ResourceType_Patient);
+        MergeMainDicomTags(other, ResourceType_Study);
+        MergeMainDicomTags(other, ResourceType_Series);
+        MergeMainDicomTags(other, ResourceType_Instance);
+    }    
+
+
+    bool DicomMap::HasOnlyMainDicomTags() const
+    {
+        const std::set<DicomTag>& allMainDicomTags = DicomMap::MainDicomTagsConfiguration::GetInstance().GetAllMainDicomTags();
+
+        for (Content::const_iterator it = content_.begin(); it != content_.end(); ++it)
+        {
+            if (allMainDicomTags.find(it->first) == allMainDicomTags.end())
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    void DicomMap::ExtractSequences(DicomMap& result) const
+    {
+        result.Clear();
+
+        for (Content::const_iterator it = content_.begin(); it != content_.end(); ++it)
+        {
+            if (it->second->IsSequence())
+            {
+                result.SetValue(it->first, it->second->GetSequenceContent());
+            }
+        }
+    }
+
+    void DicomMap::Serialize(Json::Value& target) const
+    {
+        target = Json::objectValue;
+
+        for (Content::const_iterator it = content_.begin(); it != content_.end(); ++it)
+        {
+            assert(it->second != NULL);
+            
+            std::string tag = it->first.Format();
+
+            Json::Value value;
+            it->second->Serialize(value);
+
+            target[tag] = value;
+        }
+    }
+  
+
+    void DicomMap::Unserialize(const Json::Value& source)
+    {
+        Clear();
+
+        if (source.type() != Json::objectValue)
+        {
+            throw OrthancException(ErrorCode_BadFileFormat);
+        }
+
+        Json::Value::Members tags = source.getMemberNames();
+
+        for (size_t i = 0; i < tags.size(); i++)
+        {
+            DicomTag tag(0, 0);
+            
+            if (!DicomTag::ParseHexadecimal(tag, tags[i].c_str()) ||
+                content_.find(tag) != content_.end())
+            {
+                throw OrthancException(ErrorCode_BadFileFormat);
+            }
+
+            std::unique_ptr<DicomValue> value(new DicomValue);
+            value->Unserialize(source[tags[i]]);
+
+            content_[tag] = value.release();
+        }
+    }
+
+
+    void DicomMap::FromDicomWeb(const Json::Value& source)
+    {
+        static const char* const ALPHABETIC = "Alphabetic";
+        static const char* const IDEOGRAPHIC = "Ideographic";
+        static const char* const INLINE_BINARY = "InlineBinary";
+        static const char* const PHONETIC = "Phonetic";
+        static const char* const VALUE = "Value";
+        static const char* const VR = "vr";
+    
+        Clear();
+
+        if (source.type() != Json::objectValue)
+        {
+            throw OrthancException(ErrorCode_BadFileFormat);
+        }
+    
+        Json::Value::Members tags = source.getMemberNames();
+
+        for (size_t i = 0; i < tags.size(); i++)
+        {
+            const Json::Value& item = source[tags[i]];
+            DicomTag tag(0, 0);
+
+            if (item.type() != Json::objectValue ||
+                !item.isMember(VR) ||
+                item[VR].type() != Json::stringValue ||
+                !DicomTag::ParseHexadecimal(tag, tags[i].c_str()))
+            {
+                throw OrthancException(ErrorCode_BadFileFormat);
+            }
+
+            ValueRepresentation vr = StringToValueRepresentation(item[VR].asString(), false);
+
+            if (item.isMember(INLINE_BINARY))
+            {
+                const Json::Value& value = item[INLINE_BINARY];
+
+                if (value.type() == Json::stringValue)
+                {
+                    std::string decoded;
+                    Toolbox::DecodeBase64(decoded, value.asString());
+                    SetValue(tag, decoded, true /* binary data */);
+                }
+            }
+            else if (!item.isMember(VALUE))
+            {
+                // Tag is present, but it has a null value
+                SetValue(tag, "", false /* not binary */);
+            }
+            else
+            {
+                const Json::Value& value = item[VALUE];
+
+                if (value.type() == Json::arrayValue)
+                {
+                    bool supported = true;
+                    
+                    std::string s;
+                    for (Json::Value::ArrayIndex j = 0; j < value.size() && supported; j++)
+                    {
+                        if (!s.empty())
+                        {
+                            s += '\\';
+                        }
+
+                        switch (value[j].type())
+                        {
+                        case Json::objectValue:
+                            if (vr == ValueRepresentation_PersonName &&
+                                value[j].type() == Json::objectValue)
+                            {
+                                if (value[j].isMember(ALPHABETIC) &&
+                                    value[j][ALPHABETIC].type() == Json::stringValue)
+                                {
+                                    s += value[j][ALPHABETIC].asString();
+                                }
+
+                                bool hasIdeographic = false;
+                                
+                                if (value[j].isMember(IDEOGRAPHIC) &&
+                                    value[j][IDEOGRAPHIC].type() == Json::stringValue)
+                                {
+                                    s += '=' + value[j][IDEOGRAPHIC].asString();
+                                    hasIdeographic = true;
+                                }
+                                
+                                if (value[j].isMember(PHONETIC) &&
+                                    value[j][PHONETIC].type() == Json::stringValue)
+                                {
+                                    if (!hasIdeographic)
+                                    {
+                                        s += '=';
+                                    }
+                                    
+                                    s += '=' + value[j][PHONETIC].asString();
+                                }
+                            }
+                            else
+                            {
+                                // This is the case of sequences
+                                supported = false;
+                            }
+
+                            break;
+                        
+                        case Json::stringValue:
+                            s += value[j].asString();
+                            break;
+                        
+                        case Json::intValue:
+                            s += boost::lexical_cast<std::string>(value[j].asInt64());
+                            break;
+                        
+                        case Json::uintValue:
+                            s += boost::lexical_cast<std::string>(value[j].asUInt64());
+                            break;
+                        
+                        case Json::realValue:
+                            s += boost::lexical_cast<std::string>(value[j].asDouble());
+                            break;
+                        
+                        default:
+                            break;
+                        }
+                    }
+
+                    if (supported)
+                    {
+                        SetValue(tag, s, false /* not binary */);
+                    }
+                }
+            }
+        }
+    }
+
+
+    std::string DicomMap::GetStringValue(const DicomTag& tag,
+                                        const std::string& defaultValue,
+                                        bool allowBinary) const
+    {
+        std::string s;
+        if (LookupStringValue(s, tag, allowBinary))
+        {
+            return s;
+        }
+        else
+        {
+            return defaultValue;
+        }
+    }
+
+
+    void DicomMap::RemoveBinaryTags()
+    {
+        Content kept;
+
+        for (Content::iterator it = content_.begin(); it != content_.end(); ++it)
+        {
+            assert(it->second != NULL);
+
+            if (!it->second->IsBinary() &&
+                !it->second->IsNull())
+            {
+                kept[it->first] = it->second;
+            }
+            else
+            {
+                delete it->second;
+            }
+        }
+
+        content_ = kept;
+    }
+
+
+    void DicomMap::RemoveSequences()
+    {
+        Content kept;
+
+        for (Content::iterator it = content_.begin(); it != content_.end(); ++it)
+        {
+            assert(it->second != NULL);
+
+            if (!it->second->IsSequence())
+            {
+                kept[it->first] = it->second;
+            }
+            else
+            {
+                delete it->second;
+            }
+        }
+
+        content_ = kept;
+    }
+
+    void DicomMap::DumpMainDicomTags(Json::Value& target,
+                                    ResourceType level) const
+    {
+        const std::set<DicomTag>& mainDicomTags = DicomMap::MainDicomTagsConfiguration::GetInstance().GetMainDicomTagsByLevel(level);
+        
+        target = Json::objectValue;
+
+        for (Content::const_iterator it = content_.begin(); it != content_.end(); ++it)
+        {
+            assert(it->second != NULL);
+            
+            if (!it->second->IsBinary() &&
+                !it->second->IsNull())
+            {
+                std::set<DicomTag>::const_iterator found = mainDicomTags.find(it->first);
+
+                if (found != mainDicomTags.end())
+                {
+#if ORTHANC_ENABLE_DCMTK == 1
+                    target[FromDcmtkBridge::GetTagName(*found, "")] = it->second->GetContent();
+#else
+                    target[found->Format()] = it->second->GetContent();
+#endif
+                }
+            }
+        }    
+    }
+  
+
+  
+
+    void DicomMap::Print(FILE* fp) const
+    {
+        DicomArray a(*this);
+        a.Print(fp);
+    }
+
 
 }
