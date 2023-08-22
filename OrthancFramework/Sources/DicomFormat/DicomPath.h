@@ -87,8 +87,18 @@ namespace Orthanc
 
         size_t GetPrefixLength() const;
 
+        const Orthanc::DicomTag& GetFinalTag() const;
+
+        const Orthanc::DicomTag& GetPrefixTag(size_t level) const;
+
+        bool IsPrefixUniversal(size_t level) const;
+
+        size_t GetPrefixIndex(size_t level) const;
+
         bool HasUniversal() const;
 
+        // This method is used for an optimization in Stone
+        // (cf. "DicomStructureSet.cpp")
         void SetPrefixIndex(size_t level, size_t index);
 
         std::string Format() const;
