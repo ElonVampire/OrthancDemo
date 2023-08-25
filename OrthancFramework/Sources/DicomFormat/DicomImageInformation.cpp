@@ -206,6 +206,198 @@ namespace Orthanc
 
         isPlanar_ = (planarConfiguration != 0 ? true : false);
         isSigned_ = (pixelRepresentation != 0 ? true : false);
-
     }
+
+    DicomImageInformation* DicomImageInformation::Clone() const
+    {
+        std::unique_ptr<DicomImageInformation> target(new DicomImageInformation);
+        target->width_ = width_;
+        target->height_ = height_;
+        target->samplesPerPixel_ = samplesPerPixel_;
+        target->numberOfFrames_ = numberOfFrames_;
+        target->isPlanar_ = isPlanar_;
+        target->isSigned_ = isSigned_;
+        target->bytesPerValue_ = bytesPerValue_;
+        target->bitsAllocated_ = bitsAllocated_;
+        target->bitsStored_ = bitsStored_;
+        target->highBit_ = highBit_;
+        target->photometric_ = photometric_;
+
+        return target.release();
+    }
+
+    unsigned int DicomImageInformation::GetWidth() const
+    {
+        return width_;
+    }
+
+    unsigned int DicomImageInformation::GetHeight() const
+    {
+        return height_;
+    }
+
+    unsigned int DicomImageInformation::GetNumberOfFrames() const
+    {
+        return numberOfFrames_;
+    }
+
+    unsigned int DicomImageInformation::GetChannelCount() const
+    {
+        return samplesPerPixel_;
+    }
+
+    unsigned int DicomImageInformation::GetBitsStored() const
+    {
+        return bitsStored_;
+    }
+
+    size_t DicomImageInformation::GetBytesPerValue() const
+    {
+        if (bitsStored_ == 1)
+        {
+            throw OrthancException(ErrorCode_BadSequenceOfCalls,
+                                "This call is incompatible with black-and-white images");
+        }
+        else
+        {
+            assert(bitsAllocated_ >= 8);
+            return bytesPerValue_;
+        }
+    }
+
+    bool DicomImageInformation::IsSigned() const
+    {
+        return isSigned_;
+    }
+
+    unsigned int DicomImageInformation::GetBitsAllocated() const
+    {
+        return bitsAllocated_;
+    }
+
+    unsigned int DicomImageInformation::GetHighBit() const
+    {
+        return highBit_;
+    }
+
+    bool DicomImageInformation::IsPlanar() const
+    {
+        return isPlanar_;
+    }
+
+    unsigned int DicomImageInformation::GetShift() const
+    {
+        return highBit_ + 1 - bitsStored_;
+    }
+
+    PhotometricInterpretation DicomImageInformation::GetPhotometricInterpretation() const
+    {
+        return photometric_;
+    }
+
+    bool DicomImageInformation::ExtractPixelFormat(PixelFormat& format,
+                                                 bool ignorePhotometricInterpretation) const
+    {
+        if (photometric_ == PhotometricInterpretation_Palette)
+        {
+            if (GetBitsStored() == 8 && GetChannelCount() == 1 && !IsSigned())
+            {
+                format = PixelFormat_RGB24;
+                return true;
+            }
+
+            if (GetBitsStored() == 16 && GetChannelCount() == 1 && !IsSigned())
+            {
+                format = PixelFormat_RGB48;
+                return true;
+            }
+        }
+        
+        if (ignorePhotometricInterpretation ||
+            photometric_ == PhotometricInterpretation_Monochrome1 ||
+            photometric_ == PhotometricInterpretation_Monochrome2)
+        {
+            if (GetBitsStored() == 8 && GetChannelCount() == 1 && !IsSigned())
+            {
+                format = PixelFormat_Grayscale8;
+                return true;
+            }
+            
+            if (GetBitsAllocated() == 16 && GetChannelCount() == 1 && !IsSigned())
+            {
+                format = PixelFormat_Grayscale16;
+                return true;
+            }
+
+            if (GetBitsAllocated() == 16 && GetChannelCount() == 1 && IsSigned())
+            {
+                format = PixelFormat_SignedGrayscale16;
+                return true;
+            }
+            
+            if (GetBitsAllocated() == 32 && GetChannelCount() == 1 && !IsSigned())
+            {
+                format = PixelFormat_Grayscale32;
+                return true;
+            }
+
+            if (GetBitsStored() == 1 && GetChannelCount() == 1 && !IsSigned())
+            {
+                // This is the case of DICOM SEG, new in Orthanc 1.10.0
+                format = PixelFormat_Grayscale8;
+                return true;
+            }
+        }
+
+        if (GetBitsStored() == 8 &&
+            GetChannelCount() == 3 &&
+            !IsSigned() &&
+            (ignorePhotometricInterpretation || photometric_ == PhotometricInterpretation_RGB))
+        {
+            format = PixelFormat_RGB24;
+            return true;
+        }
+
+        if (GetBitsStored() == 16 &&
+            GetChannelCount() == 3 &&
+            !IsSigned() &&
+            (ignorePhotometricInterpretation || photometric_ == PhotometricInterpretation_RGB))
+        {
+            format = PixelFormat_RGB48;
+            return true;
+        }
+
+        return false;
+    }
+
+    size_t DicomImageInformation::GetFrameSize() const
+    {
+        if (bitsStored_ == 1)
+        {
+            assert(GetWidth() % 8 == 0);
+            
+            if (GetChannelCount() == 1)
+            {
+                return GetHeight() * GetWidth() / 8;
+            }
+            else
+            {
+                throw OrthancException(ErrorCode_IncompatibleImageFormat,
+                                    "Image not supported (multi-channel black-and-image image)");
+            }
+        }
+        else
+        {
+            return (GetHeight() *
+                    GetWidth() *
+                    GetBytesPerValue() *
+                    GetChannelCount());
+        }
+    }
+
+    unsigned int DicomImageInformation::GetUsefulTagLength()
+    {
+        return 256;
+    }
+
 }
