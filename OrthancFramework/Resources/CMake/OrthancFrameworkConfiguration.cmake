@@ -133,15 +133,15 @@ endif()
 #####################################################################
 message(${CMAKE_CURRENT_LIST_DIR})
 
-# set(ORTHANC_CORE_SOURCES_INTERNAL
+set(ORTHANC_CORE_SOURCES_INTERNAL
 #   ${CMAKE_CURRENT_LIST_DIR}/../../Sources/Cache/MemoryCache.cpp
 #   ${CMAKE_CURRENT_LIST_DIR}/../../Sources/Cache/MemoryObjectCache.cpp
 #   ${CMAKE_CURRENT_LIST_DIR}/../../Sources/Cache/MemoryStringCache.cpp
-#   ${CMAKE_CURRENT_LIST_DIR}/../../Sources/ChunkedBuffer.cpp
-#   ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomFormat/DicomTag.cpp
-#   ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomFormat/DicomPath.cpp
-#   ${CMAKE_CURRENT_LIST_DIR}/../../Sources/EnumerationDictionary.h
-#   ${CMAKE_CURRENT_LIST_DIR}/../../Sources/Enumerations.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/../../Sources/ChunkedBuffer.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomFormat/DicomTag.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/../../Sources/DicomFormat/DicomPath.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/../../Sources/EnumerationDictionary.h
+  ${CMAKE_CURRENT_LIST_DIR}/../../Sources/Enumerations.cpp
 #   ${CMAKE_CURRENT_LIST_DIR}/../../Sources/FileStorage/FileInfo.cpp
 #   ${CMAKE_CURRENT_LIST_DIR}/../../Sources/FileStorage/MemoryStorageArea.cpp
 #   ${CMAKE_CURRENT_LIST_DIR}/../../Sources/HttpServer/CStringMatcher.cpp
@@ -149,17 +149,17 @@ message(${CMAKE_CURRENT_LIST_DIR})
 #   ${CMAKE_CURRENT_LIST_DIR}/../../Sources/HttpServer/HttpToolbox.cpp
 #   ${CMAKE_CURRENT_LIST_DIR}/../../Sources/HttpServer/MultipartStreamReader.cpp
 #   ${CMAKE_CURRENT_LIST_DIR}/../../Sources/HttpServer/StringMatcher.cpp
-#   ${CMAKE_CURRENT_LIST_DIR}/../../Sources/Logging.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/../../Sources/Logging.cpp
 #   ${CMAKE_CURRENT_LIST_DIR}/../../Sources/MallocMemoryBuffer.cpp
-#   ${CMAKE_CURRENT_LIST_DIR}/../../Sources/OrthancException.cpp
-#   ${CMAKE_CURRENT_LIST_DIR}/../../Sources/OrthancFramework.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/../../Sources/OrthancException.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/../../Sources/OrthancFramework.cpp
 #   ${CMAKE_CURRENT_LIST_DIR}/../../Sources/RestApi/RestApiHierarchy.cpp
 #   ${CMAKE_CURRENT_LIST_DIR}/../../Sources/RestApi/RestApiPath.cpp
 #   ${CMAKE_CURRENT_LIST_DIR}/../../Sources/SerializationToolbox.cpp
 #   ${CMAKE_CURRENT_LIST_DIR}/../../Sources/StringMemoryBuffer.cpp
-#   ${CMAKE_CURRENT_LIST_DIR}/../../Sources/Toolbox.cpp
+  ${CMAKE_CURRENT_LIST_DIR}/../../Sources/Toolbox.cpp
 #   ${CMAKE_CURRENT_LIST_DIR}/../../Sources/WebServiceParameters.cpp
-#   )
+  )
 
 # if (ENABLE_MODULE_IMAGES)
 #   list(APPEND ORTHANC_CORE_SOURCES_INTERNAL
