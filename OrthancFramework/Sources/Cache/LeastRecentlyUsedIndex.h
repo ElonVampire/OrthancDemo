@@ -137,7 +137,7 @@ namespace Orthanc
      * Implementation of the template
     ***************************************************************/
     template <typename T, typename Payload>
-    void LeastRecentlyUsedCache<T, Payload>::CheckInvariants() const
+    void LeastRecentlyUsedIndex<T, Payload>::CheckInvariants() const
     {
         assert(index_.size() == queue_.size());
         for (typename Index::const_iterator it = index_.begin(); it != index_.end(); ++it)
@@ -148,20 +148,20 @@ namespace Orthanc
     }
 
     template <typename T, typename Payload>
-    void LeastRecentlyUsedCache<T, Payload>::Add(T id, Payload payload)
+    void LeastRecentlyUsedIndex<T, Payload>::Add(T id, Payload payload)
     {
         if(Contains(id))
         {
             throw OrthancException(ErrorCode_BadSequenceOfCalls);
         }
 
-        queue_.push_front(std::make_pair(key, payload));
+        queue_.push_front(std::make_pair(id, payload));
         index_[id] = queue_.begin();
         CheckInvariants();
     }
 
     template <typename T, typename Payload>
-    void LeastRecentlyUsedCache<T, Payload>::MakeMostRecent(T id)
+    void LeastRecentlyUsedIndex<T, Payload>::MakeMostRecent(T id)
     {
         if (!Contains(id))
             throw OrthancException(ErrorCode_InexistentItem);
@@ -177,7 +177,7 @@ namespace Orthanc
     }
 
     template <typename T, typename Payload>.
-    void LeastRecentlyUsedCache<T, Payload>::AddOrMakeMostRecent(T id, Payload payload)
+    void LeastRecentlyUsedIndex<T, Payload>::AddOrMakeMostRecent(T id, Payload payload)
     {
         typename Index::iterator it = index_.find(id);
         if (it != index_.end())
@@ -198,7 +198,7 @@ namespace Orthanc
     }
 
     template <typename T, typename Payload>
-    void LeastRecentlyUsedCache<T, Payload>::MakeMostRecent(T id, Payload updatedPayload)
+    void LeastRecentlyUsedIndex<T, Payload>::MakeMostRecent(T id, Payload updatedPayload)
     {
         if (!Contains(id))
         {    
@@ -219,7 +219,7 @@ namespace Orthanc
     }
 
     template <typename T, typename Payload>
-    Payload LeastRecentlyUsedCache<T, Payload>::Invalidate(T id)
+    Payload LeastRecentlyUsedIndex<T, Payload>::Invalidate(T id)
     {
         if (!Contains(id))
         {
@@ -227,20 +227,71 @@ namespace Orthanc
         }
         typename Index::iterator it = index_.find(id);
         assert(it != index_.end());
+
         Payload payload = it->second->second;
         queue_.erase(it->second);
         index_.erase(it);
+
         CheckInvariants();
         return payload;
     }
     
     template <typename T, typename Payload>
-    T LeastRecentlyUsedCache<T, Payload>::RemoveOldest(Payload& payload)
+    T LeastRecentlyUsedIndex<T, Payload>::RemoveOldest(Payload& payload)
     {
         if(IsEmpty())
         {
             throw OrthancException(ErrorCode_BadSequenceOfCalls);
         }
-        payload = queue_.back().second;
+        std::pair<T, Payload> item = queue_.back();
+        T oldest = item.first;
+        payload = item.second;
+
+        queue_.pop_back();
+        assert(index_.find(oldest) != index_.end());
+        index_.erase(oldest);
+
+        CheckInvariants();
+        return oldest;
+    }
+
+    template <typename T, typename Payload>
+    T LeastRecentlyUsedIndex<T, Payload>::RemoveOldest()
+    {
+        if(IsEmpty())
+        {
+            throw OrthancException(ErrorCode_BadSequenceOfCalls);
+        }
+        std::pair<T, Payload> item = queue_.back();
+        T oldest = item.first;
+
+        queue_.pop_back();
+        assert(index_.find(oldest) != index_.end());
+        index_.erase(oldest);
+
+        CheckInvariants();
+        return oldest;
+    }
+
+    template <typename T, typename Payload>
+    const T& LeastRecentlyUsedIndex<T, Payload>::GetOldest() const
+    {
+        if(IsEmpty())
+        {
+            throw OrthancException(ErrorCode_BadSequenceOfCalls);
+        }
+
+        return queue_.back().first;
+    }
+
+    template <typename T, typename Payload>
+    const Payload& LeastRecentlyUsedIndex<T, Payload>::GetOldestPayload() const
+    {
+        if(IsEmpty())
+        {
+            throw OrthancException(ErrorCode_BadSequenceOfCalls);
+        }
+        
+        return queue_.back().second;
     }
 }
