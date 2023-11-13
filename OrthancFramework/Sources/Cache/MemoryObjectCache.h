@@ -73,7 +73,7 @@ namespace Orthanc
                 return item_ != NULL;
             }
 
-            ICacheable* GetValue() const;
+            ICacheable& GetValue() const;
 
             const boost::posix_time::ptime& GetTime() const;
         };

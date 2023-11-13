@@ -57,5 +57,194 @@ namespace Orthanc
             assert(currentSize_ >= size);
             currentSize_ -= size;
         }
+        // Post-condition: "currentSize_ <= targetSize"
     }
+
+    MemoryObjectCache::MemoryObjectCache():
+        currentSize_(0),
+        maxSize_(100 * 1024 * 1024) //100 MB
+    {
+    }
+
+    MemoryObjectCache::~MemoryObjectCache()
+    {
+        Recycle(0);
+        assert(content_.IsEmpty());
+    }
+
+    size_t MemoryObjectCache::GetNumberOfItems()
+    {
+#if !defined(__EMSCRIPTEN__)
+        boost::mutex::scoped_lock lock(cacheMutex_);
+#endif
+        return content_.GetSize();
+    }
+
+    size_t MemoryObjectCache::GetCurrentSize()
+    {
+#if !defined(__EMSCRIPTEN__)
+        boost::mutex::scoped_lock lock(cacheMutex_);
+#endif
+        return currentSize_;
+    }
+
+    size_t MemoryObjectCache::GetMaximumSize()
+    {
+#if !defined(__EMSCRIPTEN__)
+        boost::mutex::scoped_lock lock(cacheMutex_);
+#endif
+        return maxSize_;
+    }
+
+    void MemoryObjectCache::SetMaximumSize(size_t size)
+    {
+        if (size == 0)
+        {
+            throw OrthancException(ErrorCode_ParameterOutOfRange);
+        }
+
+#if !defined(__EMSCRIPTEN__)
+        // Make sure no accessor is currently open (as its data may be
+        // removed if recycling is needed)
+        WriterLock contentLock(contentMutex_);
+
+        // Lock the global structure of the cache
+        boost::mutex::scoped_lock cacheLock(cacheMutex_);
+#endif
+        Recycle(size);
+        maxSize_ = size;
+    }
+
+    void MemoryObjectCache::Acquire(const std::string& key, ICacheable* value)
+    {
+        std::unique_ptr<Item> item(new Item(value));
+        
+        if (value == NULL)
+        {
+            throw OrthancException(ErrorCode_NullPointer);
+        }
+        else
+        {
+#if !defined(__EMSCRIPTEN__)
+            // Make sure no accessor is currently open(as its data may be
+            // removed if recycling is needed)
+            WriterLock contentLock(contentMutex_);
+
+            // Lock the global structure of the cache
+            boost::mutex::scoped_lock cacheLock(cacheMutex_);
+#endif
+
+            const size_t size = item->GetValue().GetMemoryUsage();
+
+            if (size > maxSize_)
+            {
+                // This object is too large to be stored in the cache, discard it
+            }
+            else if (content_.Contains(key))
+            {
+                // Value already stored, don't overwrite the old value
+                content_.MakeMostRecent(key);
+            }
+            else
+            {
+                Recycle(maxSize_ - size);
+                assert(currentSize_ + size <= maxSize_);
+
+                content_.Add(key, item.release());
+                currentSize_ += size;
+            }
+        }
+    }
+
+    void MemoryObjectCache::Invalidate(const std::string& key)
+    {
+#if !defined(__EMSCRIPTEN__)
+        // Make sure no accessor is currently open(as it may correspond
+        // to the key to remove)
+        WriterLock contentLock(contentMutex_);
+
+        // Lock the global structure of the cache
+        boost::mutex::scoped_lock cacheLock(cacheMutex_);
+#endif
+
+        Item* item = NULL;
+        if (content_.Contains(key, item))
+        {
+            assert(item != NULL);
+            const size_t size = item->GetValue().GetMemoryUsage();
+            delete item;
+
+            content_.Invalidate(key);
+
+            assert(curretSize_ >= size);
+            currentSize_ -= size;
+        }
+    }
+
+    MemoryObjectCache::Accessor::Accessor(MemoryObjectCache& cache, const std::string& key, bool unique)
+        : item_(NULL)
+    {
+#if !defined(__EMSCRIPTEN__)
+        if (unique)
+        {
+            writerLock_ = WriterLock(cache.contentMutex_);
+        }
+        else
+        {
+            readerLock_ = ReaderLock(cache.contentMutex_);
+        }
+
+        // Lock the global structure of the cache, must be *after* the
+        // reader/writer lock
+        cacheLock_ = boost::mutex::scoped_lock(cache.cacheMutex_);
+#endif
+
+        if (cache.content_.Contains(key, item_))
+        {
+            cache.content_.MakeMostRecent(key);
+        }
+
+#if !defind(__EMSCRIPTEN__)        
+        cacheLock_.unlock();
+
+        if (item_ == NULL)
+        {
+            // This item does not exist in the cache, we can release the
+            // reader/writer lock
+            if (unique)
+            {
+                writerLock_.unlock();
+            }
+            else
+            {
+                readerLock_.unlock();
+            }
+        }
+#endif
+    }
+
+    ICacheable& MemoryObjectCache::Accessor::GetValue() const
+    {
+        if (IsValid())
+        {
+            return item_->GetValue();
+        }
+        else
+        {
+            throw OrthancException(ErrorCode_BadSequenceOfCalls);
+        }
+    }
+
+    const boost::posix_time::ptime& MemoryObjectCache::Accessor::GetTime() const
+    {
+        if (IsValid())
+        {
+            return item_->GetTime();
+        }
+        else
+        {
+            throw OrthancException(ErrorCode_BadSequenceOfCalls);
+        }
+    }
+
 }
